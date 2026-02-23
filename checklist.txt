@@ -1,0 +1,90 @@
+📝 Resumo do Projeto: Protótipo RPG 2D (TCC)
+Este protótipo foca na interação entre jogador, NPCs e diferentes tipos de IA de monstros em um mapa baseado em grid (estilo xadrez), mas com movimentação fluida (estilo Ragnarök).
+
+1. Entidades (Personagens)
+Jogador (Círculo Azul): Possui 3 ataques (1 comum, 2 fortes), inventário e sistema de atributos. Renasce em um ponto fixo.
+
+NPCs (Diamante Verde): Movimentam-se ao redor de um ponto fixo. Iniciam interação quando o jogador entra em seu campo de visão.
+
+Tipos: Mercador, Quest Giver (Missões) e Guia (Dicas).
+
+Monstros: Possuem ponto de renascimento fixo e raio de patrulha.
+
+Agressivo (Triângulo Vermelho): Persegue o jogador se ele estiver na visão e na zona de perseguição.
+
+Passivo (Triângulo Amarelo): Pode se tornar agressivo (defesa) ou covarde.
+
+Covarde (Triângulo Rosa): Foge do jogador ao detectá-lo.
+
+2. O Mundo (Mapa e Zonas)
+O mapa é dividido entre o lado esquerdo (seguro/NPCs) e o lado direito (perigo/monstros), cercado por uma Zona Morta (limite intransponível).
+
+Zona Livre (Cinza Claro): Movimentação permitida.
+
+Zona Obstáculo (Cinza Escuro): Bloqueia passagem de qualquer entidade.
+
+Zona Morta (Preto): Limites do mapa.
+
+3. Mecânica de IA e Combate
+A IA utiliza cálculo de rota (Pathfinding) para encontrar o caminho mais curto no grid, desviando de obstáculos.
+
+Lógica de Perseguição: O monstro só persegue se o jogador estiver SIMULTANEAMENTE no raio de visão e no raio de perseguição. Se o jogador sair de qualquer um dos dois, o monstro desiste e volta ao ponto de origem.
+
+Loot: Ao morrer, o monstro deixa um corpo no chão por tempo limitado para coleta de itens.
+
+✅ CHECKLIST — Protótipo A (Big Ball of Mud)
+Este checklist foi montado pensando em uma estrutura onde as funções podem estar misturadas (sem se preocupar com SOLID agora), focando apenas em "fazer funcionar".
+
+🟢 FASE 1 — Estrutura Base e Cenário
+[x] Projeto Unity 2D criado.
+
+[x] Configuração do Grid/Tilemap (Cores: Preto, Cinza Escuro, Cinza Claro).
+
+[x]  Criação dos Sprites básicos (Círculo, Diamante, Triângulos).
+
+[x]  Implementação de colisores nos Obstáculos e Zona Morta.
+
+🟡 FASE 2 — Movimentação e Jogador
+[ ] Script de movimento do Jogador (clique ou teclado, simulando grid fluido).
+
+[ ] Sistema de "Ponto de Retorno" (Spawn) do jogador.
+
+[ ] Implementação dos 3 ataques (Animação simples ou apenas debug log).
+
+[ ] Atributos básicos (HP, Força, etc.) e subida de nível.
+
+🔴 FASE 3 — Inteligência Artificial (O Coração do TCC)
+[ ] Sistema de Pathfinding (Cálculo de rota curta desviando de cinza escuro).
+
+[ ] Lógica de Raio de Visão (Trigger ou Distância).
+
+[ ] Lógica de Raio de Patrulha vs. Raio de Perseguição.
+
+[ ] Comportamento Agressivo: Perseguir apenas se em_visao && em_perseguicao.
+
+[ ] Comportamento Covarde: Fugir para a direção oposta ao jogador.
+
+[ ] Comportamento Passivo: Troca de estado ao ser atacado ou detectado.
+
+[ ] Sistema de Respawn dos monstros com timer.
+
+🔵 FASE 4 — NPCs e Interação
+[ ] Movimento aleatório dos NPCs ao redor do ponto de origem.
+
+[ ] Gatilho de diálogo/interação ao entrar na visão do NPC.
+
+[ ] Diferenciação visual/texto para Vendedor, Missão e Dica.
+
+📦 FASE 5 — Sistemas de Itens
+[ ] Inventário do Personagem (Equipamentos).
+
+[ ] Inventário de Baú (Armazenamento).
+
+[ ] Sistema de Drop (Corpo do monstro permanece no chão por X segundos).
+
+[ ] Coleta de itens do corpo do monstro.
+
+Exemplo Visual da Lógica de IA
+Para te ajudar a programar a condição que você reforçou, imagine este fluxo:
+
+Dica para o "Big Ball of Mud": Não se preocupe em criar classes separadas para cada tipo de monstro agora. Você pode criar um único script Monstro.cs com um switch case ou vários if/else gigantes que decidem o comportamento com base na cor/tipo do triângulo. Isso é a cara do Big Ball of Mud!

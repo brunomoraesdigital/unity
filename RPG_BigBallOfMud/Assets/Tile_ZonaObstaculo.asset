@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Tile_ZonaObstaculo
   m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.Tilemaps.Tile
   m_Sprite: {fileID: 7482667652216324306, guid: edc6f28acb8ee034d92716e263c5a023, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.3, g: 0.3, b: 0.3, a: 1}
   m_Transform:
     e00: 1
     e01: 0
