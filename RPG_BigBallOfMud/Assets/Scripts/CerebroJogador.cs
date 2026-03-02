@@ -116,24 +116,43 @@ public class CerebroJogador : MonoBehaviour
 
     void ProcessarAtaque(int b)
     {
+        int danoFinal = 0;
+        string nomeGolpe = "";
+
+        // Define o dano baseado no botão e na arma
         if (armaEquipada == TipoArma.Espada)
         {
-            if (b == 1) Debug.Log($"Golpe Rápido! Dano: {atk_fis}");
-            if (b == 2) { Debug.Log($"Golpe Fulminante! Dano: {(int)(atk_fis * 1.5f)}"); tempoReuso = 1f; }
-            if (b == 3) { Debug.Log($"Impacto Explosivo! Dano: {(int)(atk_fis * 2f)}"); tempoReuso = 3f; }
+            if (b == 1) { danoFinal = atk_fis; nomeGolpe = "Golpe Rápido"; }
+            if (b == 2) { danoFinal = (int)(atk_fis * 1.5f); nomeGolpe = "Golpe Fulminante"; tempoReuso = 1f; }
+            if (b == 3) { danoFinal = (int)(atk_fis * 2f); nomeGolpe = "Impacto Explosivo"; tempoReuso = 3f; }
         }
-        else if (armaEquipada == TipoArma.Arco)
+        // ... (você pode repetir a lógica para Arco e Cajado depois)
+
+        Debug.Log($"{nomeGolpe}! Dano: {danoFinal}");
+
+        // --- A MÁGICA ACONTECE AQUI: ---
+        // Cria um círculo invisível de 1.5 metros ao redor do jogador para detectar inimigos
+        Collider2D[] atingidos = Physics2D.OverlapCircleAll(transform.position, 1.5f);
+
+        foreach (Collider2D col in atingidos)
         {
-            if (b == 1) Debug.Log($"Tiro Rápido! Dano: {atk_dist}");
-            if (b == 2) { Debug.Log($"Rajada de Flechas! Dano: {(int)(atk_dist * 1.5f)}"); tempoReuso = 1f; }
-            if (b == 3) { Debug.Log($"Chuva de Flechas! Dano: {(int)(atk_dist * 2f)}"); tempoReuso = 3f; }
+            // Se o que atingimos tiver a Tag "Inimigo"
+            if (col.CompareTag("Inimigo"))
+            {
+                CerebroInimigo scriptInimigo = col.GetComponent<CerebroInimigo>();
+                if (scriptInimigo != null)
+                {
+                    scriptInimigo.ReceberDano(danoFinal); // Manda o dano para o inimigo!
+                }
+            }
         }
-        else if (armaEquipada == TipoArma.Cajado)
-        {
-            if (b == 1) Debug.Log($"Ataque de Mana! Dano: {atk_mag}");
-            if (b == 2) { Debug.Log($"Bola de Fogo! Dano: {(int)(atk_mag * 1.8f)}"); tempoReuso = 3f; }
-            if (b == 3) { Debug.Log($"Meteoro! Dano: {(int)(atk_mag * 3f)}"); tempoReuso = 3f; }
-        }
+    }
+
+    // Isso serve para você enxergar o tamanho do seu ataque na aba Scene (Círculo Azul)
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, 1.5f);
     }
 
     void FixedUpdate()
