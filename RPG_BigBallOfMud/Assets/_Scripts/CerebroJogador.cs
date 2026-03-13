@@ -14,6 +14,7 @@ public class CerebroJogador : MonoBehaviour
     void Start()
     {
         componenteFisica = GetComponent<Rigidbody2D>();
+
     }
 
     void Update()
