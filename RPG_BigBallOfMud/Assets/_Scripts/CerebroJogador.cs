@@ -4,8 +4,8 @@ using UnityEngine.InputSystem;
 
 public class CerebroJogador : MonoBehaviour
 {
-    // O segredo È o ": MonoBehaviour" ali em cima. 
-    // Sem isso, o Unity n„o aceita o script no objeto.public float velocidade = 5f;
+    // O segredo √© o ": MonoBehaviour" ali em cima. 
+    // Sem isso, o Unity n√£o aceita o script no objeto.public float velocidade = 5f;
 
     public float velocidadeMovimento = 5f;
     private Rigidbody2D componenteFisica;
@@ -32,12 +32,12 @@ public class CerebroJogador : MonoBehaviour
 
             direcaoInput = new Vector2(x, y);
 
-            // LOGICA DE ROTA«√O: Se houver algum movimento, vira o personagem
+            // LOGICA DE ROTA√á√ÉO: Se houver algum movimento, vira o personagem
             if (direcaoInput != Vector2.zero)
             {
-                // Calcula o ‚ngulo baseado no movimento
+                // Calcula o √¢ngulo baseado no movimento
                 float angulo = Mathf.Atan2(direcaoInput.y, direcaoInput.x) * Mathf.Rad2Deg;
-                // Aplica a rotaÁ„o no Transform
+                // Aplica a rota√ß√£o no Transform
                 transform.rotation = Quaternion.Euler(0, 0, angulo);
             }
         }
