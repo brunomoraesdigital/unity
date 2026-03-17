@@ -204,6 +204,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6be7afdf4972534388d6b93ab3ba0ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CerebroNPC
+  tipoDesteNPC: 0
   JOGADOR: {fileID: 843411522}
   raioVadiagem: 2
   raioVisao: 3
@@ -724,6 +725,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6be7afdf4972534388d6b93ab3ba0ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CerebroNPC
+  tipoDesteNPC: 2
   JOGADOR: {fileID: 843411522}
   raioVadiagem: 2
   raioVisao: 3
@@ -3216,6 +3218,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6be7afdf4972534388d6b93ab3ba0ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CerebroNPC
+  tipoDesteNPC: 1
   JOGADOR: {fileID: 843411522}
   raioVadiagem: 2
   raioVisao: 3

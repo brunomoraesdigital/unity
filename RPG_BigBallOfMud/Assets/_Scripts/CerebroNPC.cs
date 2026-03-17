@@ -1,19 +1,27 @@
 using UnityEngine;
 using UnityEngine.AI;
+using System.Collections.Generic;
 
 public class CerebroNPC : MonoBehaviour
 {
+    public enum TipoNPC { Aventureiro, Mercador, AssistenteGuilda }
+    [Header("Configurações do NPC")]
+    public TipoNPC tipoDesteNPC;
+
     private int contadorTeste = 0;
     [SerializeField] Transform JOGADOR;
     private NavMeshAgent agent;
 
     private Vector3 pontoRespawn;
-    [SerializeField] float raioVadiagem = 2f; // Conforme seu pedido
+    [SerializeField] float raioVadiagem = 2f;
     [SerializeField] float raioVisao = 3f;
 
     [SerializeField] float tempoEsperaPatrulha = 3f;
     private float cronometroPatrulha;
     private bool jaFalou = false;
+
+    // Controle de dicas para o Aventureiro
+    private int ultimaDicaIndice = -1;
 
     void Start()
     {
@@ -23,7 +31,8 @@ public class CerebroNPC : MonoBehaviour
         pontoRespawn = transform.position;
         cronometroPatrulha = tempoEsperaPatrulha;
 
-        GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezeAll;
+        if (GetComponent<Rigidbody2D>() != null)
+            GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezeAll;
     }
 
     void Update()
@@ -32,29 +41,69 @@ public class CerebroNPC : MonoBehaviour
 
         float distanciaProJogador = Vector2.Distance(transform.position, JOGADOR.position);
 
-        // Lógica de conversa: Ao ver o jogador, ele para e fala
         if (distanciaProJogador <= raioVisao)
         {
             if (!jaFalou)
             {
-                Debug.Log("NPC DIZ: Cuidado, aventureiro! Há lobos famintos nesta floresta.");
-                contadorTeste++; // Aumenta 1 toda vez que entra no raio
-                GerenteConsole.instancia.EscreverNoConsole("NPC: Cuidado! (Mensagem " + contadorTeste + ")");
+                ExecutarFalaRPG();
                 jaFalou = true;
             }
-
-            // O NPC para de andar para conversar
             agent.isStopped = true;
+            OlharSuaveParaOJogador(); // NOVO: Olha para você suavemente
         }
         else
         {
-            // Se o jogador se afastar, ele volta a vadiar e pode falar de novo se você voltar
             agent.isStopped = false;
             jaFalou = false;
             ExecutarVadiagemNPC();
+            AjustarRotacaoVisual(); // Volta a olhar para onde caminha
+        }
+    }
+
+    void ExecutarFalaRPG()
+    {
+        string mensagem = "";
+        contadorTeste++;
+
+        if (tipoDesteNPC == TipoNPC.Aventureiro)
+        {
+            // Lógica de dicas aleatórias sem repetir a anterior
+            string[] dicas = {
+                "Lobo cercam o norte. Mantenha o aço afiado!",
+                "Cuidado com os ratos. Eles parecem calmos, mas atacam se chegar perto!",
+                "Não perca tempo com as galinhas. Vão fugir antes de você atacar.",
+                "Coelhos são medrosos. Correm ao menor sinal de perigo."
+            };
+
+            int novoIndice;
+            do
+            {
+                novoIndice = Random.Range(0, dicas.Length);
+            } while (novoIndice == ultimaDicaIndice);
+
+            ultimaDicaIndice = novoIndice;
+            mensagem = "AVENTUREIRO: " + dicas[novoIndice] + " (" + contadorTeste + ")";
+        }
+        else if (tipoDesteNPC == TipoNPC.Mercador)
+        {
+            mensagem = "MERCADOR: Pelas barbas de Odin! Deseja trocar seu ouro por algo útil? (" + contadorTeste + ")";
+        }
+        else
+        {
+            mensagem = "ASSISTENTE: Bem-vindo à Guilda. Procuras missões ou suporte? (" + contadorTeste + ")";
         }
 
-        AjustarRotacaoVisual();
+        if (GerenteConsole.instancia != null)
+            GerenteConsole.instancia.EscreverNoConsole(mensagem);
+    }
+
+    void OlharSuaveParaOJogador()
+    {
+        Vector3 direcao = (JOGADOR.position - transform.position).normalized;
+        float angulo = Mathf.Atan2(direcao.y, direcao.x) * Mathf.Rad2Deg;
+        Quaternion rotacaoAlvo = Quaternion.Euler(0, 0, angulo);
+        // 5f é a velocidade da suavidade
+        transform.rotation = Quaternion.Lerp(transform.rotation, rotacaoAlvo, Time.deltaTime * 5f);
     }
 
     void ExecutarVadiagemNPC()
@@ -69,9 +118,8 @@ public class CerebroNPC : MonoBehaviour
 
                 NavMeshHit hit;
                 if (NavMesh.SamplePosition(destinoFinal, out hit, 1.0f, NavMesh.AllAreas))
-                {
                     agent.SetDestination(hit.position);
-                }
+
                 cronometroPatrulha = tempoEsperaPatrulha;
             }
         }
@@ -89,7 +137,7 @@ public class CerebroNPC : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Vector3 centro = Application.isPlaying ? pontoRespawn : transform.position;
-        Gizmos.color = Color.green; // NPC usa verde para patrulha
+        Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(centro, raioVadiagem);
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position, raioVisao);
