@@ -1,39 +1,49 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.AI;
 
 public class CerebroJogador : MonoBehaviour
 {
     public float velocidadeMovimento = 5f;
     private Rigidbody2D componenteFisica;
+    private NavMeshAgent agenteNav;
     private Vector2 direcaoInput;
 
     [Header("Configurações de Ataque")]
     private float tempoExibicaoAtaque = 0.2f;
+    private float alcanceAtaque = 1.6f; // Mesma distância do monstro
 
     private Transform alvoPerseguicao;
-    private Vector3? pontoDestinoMouse = null; // Destino no chão
     private float cronometroAtaqueAuto;
 
     void Start()
     {
         componenteFisica = GetComponent<Rigidbody2D>();
+        agenteNav = GetComponent<NavMeshAgent>();
+
+        if (agenteNav != null)
+        {
+            agenteNav.updateRotation = false;
+            agenteNav.updateUpAxis = false;
+            agenteNav.speed = velocidadeMovimento;
+        }
     }
 
     void Update()
     {
-        if (GerenteConsole.instancia != null && GerenteConsole.instancia.EstaDigitando()) return;
+        if (GerenteConsole.instancia != null && GerenteConsole.instancia.EstaDigitando())
+        {
+            if (agenteNav != null && agenteNav.isOnNavMesh) agenteNav.isStopped = true;
+            return;
+        }
 
         MoverERotacionar();
 
         if (Keyboard.current.fKey.wasPressedThisFrame) { ExecutarAcerto(); }
 
-        if (Mouse.current.leftButton.wasPressedThisFrame)
-        {
-            DetectarCliqueMouse();
-        }
+        if (Mouse.current.leftButton.wasPressedThisFrame) { DetectarCliqueMouse(); }
 
         if (alvoPerseguicao != null) { ExecutarAutoCaca(); }
-        else if (pontoDestinoMouse != null) { IrParaPontoMouse(); }
     }
 
     void DetectarCliqueMouse()
@@ -44,45 +54,44 @@ public class CerebroJogador : MonoBehaviour
         if (hit.collider != null && hit.collider.CompareTag("Inimigo"))
         {
             alvoPerseguicao = hit.collider.transform;
-            pontoDestinoMouse = null;
+            if (agenteNav != null && agenteNav.isOnNavMesh) agenteNav.isStopped = false;
         }
         else
         {
             alvoPerseguicao = null;
-            pontoDestinoMouse = new Vector3(mousePos.x, mousePos.y, 0);
-        }
-    }
-
-    void IrParaPontoMouse()
-    {
-        float distancia = Vector2.Distance(transform.position, pontoDestinoMouse.Value);
-        if (distancia > 0.2f)
-        {
-            Vector2 direcao = ((Vector2)pontoDestinoMouse.Value - (Vector2)transform.position).normalized;
-            direcaoInput = direcao;
-            float angulo = Mathf.Atan2(direcao.y, direcao.x) * Mathf.Rad2Deg;
-            transform.rotation = Quaternion.Euler(0, 0, angulo);
-        }
-        else
-        {
-            pontoDestinoMouse = null;
-            direcaoInput = Vector2.zero;
+            if (agenteNav != null && agenteNav.isOnNavMesh)
+            {
+                agenteNav.isStopped = false;
+                agenteNav.SetDestination(new Vector3(mousePos.x, mousePos.y, 0));
+            }
         }
     }
 
     void ExecutarAutoCaca()
     {
         float distancia = Vector2.Distance(transform.position, alvoPerseguicao.position);
-        if (distancia > 1.2f)
+
+        // CORREÇÃO: Olha sempre para o alvo na perseguição
+        Vector3 direcaoAlvo = (alvoPerseguicao.position - transform.position).normalized;
+        float anguloAlvo = Mathf.Atan2(direcaoAlvo.y, direcaoAlvo.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.Euler(0, 0, anguloAlvo);
+
+        if (distancia > alcanceAtaque)
         {
-            Vector2 direcao = (alvoPerseguicao.position - transform.position).normalized;
-            direcaoInput = direcao;
-            float angulo = Mathf.Atan2(direcao.y, direcao.x) * Mathf.Rad2Deg;
-            transform.rotation = Quaternion.Euler(0, 0, angulo);
+            if (agenteNav != null && agenteNav.isOnNavMesh)
+            {
+                agenteNav.isStopped = false;
+                agenteNav.SetDestination(alvoPerseguicao.position);
+            }
         }
         else
         {
-            direcaoInput = Vector2.zero;
+            if (agenteNav != null && agenteNav.isOnNavMesh)
+            {
+                agenteNav.isStopped = true;
+                agenteNav.velocity = Vector3.zero; // Para o corpo físico
+            }
+
             cronometroAtaqueAuto += Time.deltaTime;
             if (cronometroAtaqueAuto >= 1f)
             {
@@ -105,20 +114,29 @@ public class CerebroJogador : MonoBehaviour
         if (temTeclado)
         {
             alvoPerseguicao = null;
-            pontoDestinoMouse = null;
+            if (agenteNav != null && agenteNav.isOnNavMesh) agenteNav.isStopped = true;
             direcaoInput = new Vector2(x, y);
             float angulo = Mathf.Atan2(direcaoInput.y, direcaoInput.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0, 0, angulo);
         }
-        else if (alvoPerseguicao == null && pontoDestinoMouse == null)
+        else if (agenteNav != null && agenteNav.isOnNavMesh && !agenteNav.isStopped && agenteNav.hasPath)
         {
+            if (agenteNav.velocity.sqrMagnitude > 0.01f)
+            {
+                float angulo = Mathf.Atan2(agenteNav.velocity.y, agenteNav.velocity.x) * Mathf.Rad2Deg;
+                transform.rotation = Quaternion.Euler(0, 0, angulo);
+            }
             direcaoInput = Vector2.zero;
         }
+        else { direcaoInput = Vector2.zero; }
     }
 
     void FixedUpdate()
     {
-        componenteFisica.linearVelocity = direcaoInput.normalized * velocidadeMovimento;
+        if (agenteNav == null || !agenteNav.isOnNavMesh || agenteNav.isStopped)
+        {
+            componenteFisica.linearVelocity = direcaoInput.normalized * velocidadeMovimento;
+        }
     }
 
     void ExecutarAcerto()
@@ -126,7 +144,7 @@ public class CerebroJogador : MonoBehaviour
         GameObject bastao = GameObject.CreatePrimitive(PrimitiveType.Quad);
         Destroy(bastao.GetComponent<MeshCollider>());
         bastao.transform.SetParent(this.transform);
-        bastao.transform.localPosition = new Vector3(1.2f, 0, 0);
+        bastao.transform.localPosition = new Vector3(1.2f, 0, -0.1f); // Z para cima
         bastao.transform.localRotation = Quaternion.identity;
         bastao.transform.localScale = new Vector3(1.5f, 0.3f, 1f);
         bastao.GetComponent<Renderer>().material.color = new Color(0.5f, 0.8f, 1f);

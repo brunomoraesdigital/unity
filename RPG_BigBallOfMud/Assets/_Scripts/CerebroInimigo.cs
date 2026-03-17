@@ -15,7 +15,7 @@ public class CerebroInimigo : MonoBehaviour
     [SerializeField] float raioVadiagem = 3f;
     [SerializeField] float raioVisao = 4f;
     [SerializeField] float raioPerseguicao = 8f;
-    [SerializeField] float alcanceAtaque = 1.5f; // Aumentado para 1.5 para evitar o empurrão físico
+    [SerializeField] float alcanceAtaque = 1.6f; // Distância segura para não empurrar
 
     private bool estaBravo = false;
     private bool estaComMedo = false;
@@ -31,7 +31,6 @@ public class CerebroInimigo : MonoBehaviour
         pontoRespawn = transform.position;
         cronometroPatrulha = tempoEsperaPatrulha;
 
-        // Mantém as restrições para não rotacionar sozinho
         if (GetComponent<Rigidbody2D>() != null)
             GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezeRotation;
     }
@@ -54,11 +53,13 @@ public class CerebroInimigo : MonoBehaviour
         else if ((tipoMonstro == Temperamento.Lobo_Agressivo && distJogador <= raioVisao && distJogadorProSpawn <= raioPerseguicao) ||
                  (estaBravo && distJogadorProSpawn <= raioPerseguicao))
         {
-            // CORREÇÃO: Para o agente um pouco antes para evitar o empurrão
+            // CORREÇÃO: Olha para o jogador ANTES de atacar
+            OlharParaAlvo(JOGADOR.position);
+
             if (distJogador <= alcanceAtaque)
             {
                 agent.isStopped = true;
-                agent.velocity = Vector3.zero; // Zera a velocidade para travar no lugar
+                agent.velocity = Vector3.zero; // Trava a física para não empurrar
                 ExecutarAtaqueMonstro();
             }
             else
@@ -74,7 +75,15 @@ public class CerebroInimigo : MonoBehaviour
             Patrulhar();
         }
 
-        AjustarRotacaoVisual();
+        // Só ajusta rotação visual se estiver se movendo e NÃO estiver atacando
+        if (!agent.isStopped) AjustarRotacaoVisual();
+    }
+
+    void OlharParaAlvo(Vector3 alvo)
+    {
+        Vector3 direcao = (alvo - transform.position).normalized;
+        float angulo = Mathf.Atan2(direcao.y, direcao.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.Euler(0, 0, angulo);
     }
 
     void ExecutarAtaqueMonstro()
@@ -85,15 +94,13 @@ public class CerebroInimigo : MonoBehaviour
             GameObject bastao = GameObject.CreatePrimitive(PrimitiveType.Quad);
             Destroy(bastao.GetComponent<MeshCollider>());
             bastao.transform.SetParent(this.transform);
-
-            // CORREÇÃO: Z em -0.1f para garantir que fique por cima de tudo
             bastao.transform.localPosition = new Vector3(0.8f, 0, -0.1f);
             bastao.transform.localRotation = Quaternion.identity;
             bastao.transform.localScale = new Vector3(1f, 0.2f, 1f);
 
             Renderer rend = bastao.GetComponent<Renderer>();
             rend.material.color = Color.red;
-            rend.sortingOrder = 10; // Garante que apareça acima do jogador
+            rend.sortingOrder = 10;
 
             Destroy(bastao, 0.2f);
             cronometroAtaque = 0;

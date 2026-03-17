@@ -19,7 +19,6 @@ public class GerenteConsole : MonoBehaviour
     {
         if (inputField != null)
         {
-            // O segredo para o Enter sair do foco está aqui e no método abaixo
             inputField.onSubmit.AddListener(delegate { EnviarPeloEnter(); });
             inputField.DeactivateInputField();
         }
@@ -32,6 +31,7 @@ public class GerenteConsole : MonoBehaviour
             if (!inputField.isFocused)
             {
                 inputField.ActivateInputField();
+                inputField.Select();
             }
         }
     }
@@ -46,12 +46,16 @@ public class GerenteConsole : MonoBehaviour
             inputField.text = "";
         }
 
-        // CORREÇÃO: Desativa o campo e remove o foco do EventSystem para voltar ao jogo
+        // CORREÇÃO: Força o encerramento do foco de forma absoluta
         inputField.DeactivateInputField();
         if (UnityEngine.EventSystems.EventSystem.current != null)
         {
             UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
         }
+
+        // Pequena gambiarra necessária para o TMP soltar o teclado no mesmo frame
+        inputField.enabled = false;
+        inputField.enabled = true;
     }
 
     public void EscreverNoConsole(string mensagem)
