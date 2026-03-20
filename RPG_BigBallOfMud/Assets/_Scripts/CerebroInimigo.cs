@@ -4,21 +4,23 @@ using UnityEngine.AI;
 public class CerebroInimigo : MonoBehaviour
 {
     public enum Temperamento { Lobo_Agressivo, Rato_PassivoAgressivo, Galinha_PassivoCovarde, Coelho_Covarde }
-    [Header("Configuração de Tipo")]
+    [Header("Configuracao de Tipo")]
     public Temperamento tipoMonstro;
 
     [SerializeField] Transform JOGADOR;
     private NavMeshAgent agent;
     private Vector3 pontoRespawn;
 
-    [Header("Raios de Ação")]
+    [Header("Raios de Acao")]
     [SerializeField] float raioVadiagem = 3f;
     [SerializeField] float raioVisao = 4f;
     [SerializeField] float raioPerseguicao = 8f;
-    [SerializeField] float alcanceAtaque = 1.6f; // Distância segura para não empurrar
+    [SerializeField] float alcanceAtaque = 1.6f;
 
     private bool estaBravo = false;
     private bool estaComMedo = false;
+    private bool mensagemAcaoDisparada = false;
+
     private float cronometroPatrulha;
     private float cronometroAtaque;
     [SerializeField] float tempoEsperaPatrulha = 2f;
@@ -48,18 +50,28 @@ public class CerebroInimigo : MonoBehaviour
 
         if (deveFugir)
         {
+            if (!mensagemAcaoDisparada && tipoMonstro == Temperamento.Coelho_Covarde)
+            {
+                EnviarLog("O coelho iniciou a fuga desesperada pulando o mais rapido que pode!");
+                mensagemAcaoDisparada = true;
+            }
             FugirDoJogador();
         }
         else if ((tipoMonstro == Temperamento.Lobo_Agressivo && distJogador <= raioVisao && distJogadorProSpawn <= raioPerseguicao) ||
                  (estaBravo && distJogadorProSpawn <= raioPerseguicao))
         {
-            // CORREÇÃO: Olha para o jogador ANTES de atacar
+            if (!mensagemAcaoDisparada && tipoMonstro == Temperamento.Lobo_Agressivo)
+            {
+                EnviarLog("O lobo iniciou a perseguicao com as suas presas a mostra!");
+                mensagemAcaoDisparada = true;
+            }
+
             OlharParaAlvo(JOGADOR.position);
 
             if (distJogador <= alcanceAtaque)
             {
                 agent.isStopped = true;
-                agent.velocity = Vector3.zero; // Trava a física para não empurrar
+                agent.velocity = Vector3.zero;
                 ExecutarAtaqueMonstro();
             }
             else
@@ -70,13 +82,36 @@ public class CerebroInimigo : MonoBehaviour
         }
         else
         {
-            if (estaComMedo && distInimigoProSpawn <= 1.0f && distJogador > raioVisao) estaComMedo = false;
-            if (estaBravo && distJogadorProSpawn > raioPerseguicao) estaBravo = false;
+            if (mensagemAcaoDisparada)
+            {
+                if (estaComMedo && distInimigoProSpawn <= 1.5f)
+                {
+                    if (tipoMonstro == Temperamento.Galinha_PassivoCovarde) EnviarLog("A galinha saiu da sua visao, ela esta voltando pro seu ninho.");
+                    if (tipoMonstro == Temperamento.Coelho_Covarde) EnviarLog("O coelho conseguiu sair da sua visao, ele esta voltando pra sua toca.");
+                    mensagemAcaoDisparada = false;
+                    estaComMedo = false;
+                }
+                else if (distJogadorProSpawn > raioPerseguicao || (tipoMonstro == Temperamento.Lobo_Agressivo && distJogador > raioVisao))
+                {
+                    if (tipoMonstro == Temperamento.Lobo_Agressivo) EnviarLog("O lobo desistiu da perseguicao com ar de satisfacao.");
+                    if (tipoMonstro == Temperamento.Rato_PassivoAgressivo) EnviarLog("O rato desistiu da perseguicao com ar indignado.");
+                    mensagemAcaoDisparada = false;
+                    estaBravo = false;
+                }
+            }
+
             Patrulhar();
         }
 
-        // Só ajusta rotação visual se estiver se movendo e NÃO estiver atacando
         if (!agent.isStopped) AjustarRotacaoVisual();
+    }
+
+    void EnviarLog(string texto)
+    {
+        if (GerenteConsole.instancia != null)
+        {
+            GerenteConsole.instancia.EscreverNoConsole(texto);
+        }
     }
 
     void OlharParaAlvo(Vector3 alvo)
@@ -91,16 +126,17 @@ public class CerebroInimigo : MonoBehaviour
         cronometroAtaque += Time.deltaTime;
         if (cronometroAtaque >= 1f)
         {
+            string nomeInimigo = tipoMonstro.ToString().Split('_')[0];
+            EnviarLog("O " + nomeInimigo.ToLower() + " ataca com ferocidade!");
+
             GameObject bastao = GameObject.CreatePrimitive(PrimitiveType.Quad);
             Destroy(bastao.GetComponent<MeshCollider>());
             bastao.transform.SetParent(this.transform);
             bastao.transform.localPosition = new Vector3(0.8f, 0, -0.1f);
             bastao.transform.localRotation = Quaternion.identity;
             bastao.transform.localScale = new Vector3(1f, 0.2f, 1f);
-
-            Renderer rend = bastao.GetComponent<Renderer>();
-            rend.material.color = Color.red;
-            rend.sortingOrder = 10;
+            bastao.GetComponent<Renderer>().material.color = Color.red;
+            bastao.GetComponent<Renderer>().sortingOrder = 10;
 
             Destroy(bastao, 0.2f);
             cronometroAtaque = 0;
@@ -109,8 +145,21 @@ public class CerebroInimigo : MonoBehaviour
 
     public void ReceberAcerto()
     {
-        if (tipoMonstro == Temperamento.Rato_PassivoAgressivo) estaBravo = true;
-        if (tipoMonstro == Temperamento.Galinha_PassivoCovarde) estaComMedo = true;
+        string nomeInimigo = tipoMonstro.ToString().Split('_')[0];
+        EnviarLog("O jogador acertou o " + nomeInimigo.ToLower() + "!");
+
+        if (tipoMonstro == Temperamento.Rato_PassivoAgressivo && !estaBravo)
+        {
+            estaBravo = true;
+            mensagemAcaoDisparada = true;
+            EnviarLog("O rato iniciou a perseguicao com furia nos olhos!");
+        }
+        if (tipoMonstro == Temperamento.Galinha_PassivoCovarde && !estaComMedo)
+        {
+            estaComMedo = true;
+            mensagemAcaoDisparada = true;
+            EnviarLog("A galinha iniciou a fuga desesperada batendo as asas o mais rapido que pode!");
+        }
     }
 
     void FugirDoJogador()
@@ -146,13 +195,5 @@ public class CerebroInimigo : MonoBehaviour
             float angulo = Mathf.Atan2(agent.velocity.y, agent.velocity.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0, 0, angulo);
         }
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Vector3 centro = Application.isPlaying ? pontoRespawn : transform.position;
-        Gizmos.color = Color.yellow; Gizmos.DrawWireSphere(centro, raioVadiagem);
-        Gizmos.color = Color.red; Gizmos.DrawWireSphere(centro, raioPerseguicao);
-        Gizmos.color = Color.blue; Gizmos.DrawWireSphere(transform.position, raioVisao);
     }
 }

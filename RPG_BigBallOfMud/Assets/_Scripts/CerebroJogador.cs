@@ -55,6 +55,9 @@ public class CerebroJogador : MonoBehaviour
         {
             alvoPerseguicao = hit.collider.transform;
             if (agenteNav != null && agenteNav.isOnNavMesh) agenteNav.isStopped = false;
+
+            // Mensagem de início de caça
+            GerenteConsole.instancia.EscreverNoConsole("Você marcou o " + alvoPerseguicao.name + " como alvo!");
         }
         else
         {
